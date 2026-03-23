@@ -15,14 +15,16 @@ struct Line {
 };
 
 struct LaneLines {
-    std::vector<Line> left_lines;
-    std::vector<Line> right_lines;
     bool has_left;
     bool has_right;
-    cv::Point left_bottom;
-    cv::Point left_top;
-    cv::Point right_bottom;
-    cv::Point right_top;
+
+    // Polynomial coefficients: x = a*y^2 + b*y + c
+    double left_a, left_b, left_c;
+    double right_a, right_b, right_c;
+
+    // Points for drawing the curve
+    std::vector<cv::Point> left_points;
+    std::vector<cv::Point> right_points;
 };
 
 class LaneDetector {
@@ -51,8 +53,9 @@ private:
     LaneLines classifyAndAverageLines(const std::vector<cv::Vec4i>& lines, const cv::Size& frame_size);
 
     // Helper functions
-    void separateLeftRight(const std::vector<Line>& lines, std::vector<Line>& left, std::vector<Line>& right);
-    bool computeAverageLine(const std::vector<Line>& lines, cv::Point& bottom, cv::Point& top, int frame_width, int frame_height);
+    void separateLeftRight(const std::vector<Line>& lines, std::vector<Line>& left, std::vector<Line>& right, const cv::Size& frame_size);
+    bool fitPolynomialLane(const std::vector<Line>& lines, double& a, double& b, double& c,
+                           std::vector<cv::Point>& curve_points, int frame_height);
 
     // Parameters
     int canny_low_;

@@ -145,79 +145,99 @@ LaneLines LaneDetector::classifyAndAverageLines(const std::vector<cv::Vec4i>& li
     }
 
     // Separate left and right lines
-    separateLeftRight(all_lines, result.left_lines, result.right_lines);
+    std::vector<Line> left_lines, right_lines;
+    separateLeftRight(all_lines, left_lines, right_lines, frame_size);
 
-    // Compute average lines
-    result.has_left = computeAverageLine(result.left_lines, result.left_bottom,
-                                         result.left_top, frame_size.width, frame_size.height);
-    result.has_right = computeAverageLine(result.right_lines, result.right_bottom,
-                                          result.right_top, frame_size.width, frame_size.height);
+    // Fit polynomial curves
+    result.has_left = fitPolynomialLane(left_lines, result.left_a, result.left_b, result.left_c,
+                                        result.left_points, frame_size.height);
+    result.has_right = fitPolynomialLane(right_lines, result.right_a, result.right_b, result.right_c,
+                                         result.right_points, frame_size.height);
 
     return result;
 }
 
 void LaneDetector::separateLeftRight(const std::vector<Line>& lines,
-                                     std::vector<Line>& left, std::vector<Line>& right) {
+                                     std::vector<Line>& left, std::vector<Line>& right, const cv::Size& frame_size) {
+    int frame_center_x = frame_size.width / 2;
+
     for (const auto& line : lines) {
-        // Filter by angle
+        // Filter by angle - lanes should not be too horizontal
         if (std::abs(line.angle) < 25) {
-            // Line is too horizontal, skip
             continue;
         }
 
-        // Negative angle -> left lane, positive angle -> right lane
-        if (line.angle < 0) {
+        // Calculate line center position
+        int line_center_x = (line.start.x + line.end.x) / 2;
+
+        // Classify based on position and angle
+        if (line_center_x < frame_center_x && line.angle < 0) {
+            // Left side of frame with negative angle (left lane)
             left.push_back(line);
-        } else {
+        } else if (line_center_x > frame_center_x && line.angle > 0) {
+            // Right side of frame with positive angle (right lane)
             right.push_back(line);
         }
     }
 }
 
-bool LaneDetector::computeAverageLine(const std::vector<Line>& lines, cv::Point& bottom,
-                                      cv::Point& top, int frame_width, int frame_height) {
+bool LaneDetector::fitPolynomialLane(const std::vector<Line>& lines, double& a, double& b, double& c,
+                                     std::vector<cv::Point>& curve_points, int frame_height) {
     if (lines.empty()) {
         return false;
     }
 
-    // Collect all points
+    // Collect all points from line segments
     std::vector<cv::Point> points;
     for (const auto& line : lines) {
         points.push_back(line.start);
         points.push_back(line.end);
     }
 
-    // Fit line
-    cv::Vec4f line_params;
-    cv::fitLine(points, line_params, cv::DIST_L2, 0, 0.01, 0.01);
-
-    double vx = line_params[0];
-    double vy = line_params[1];
-    double x0 = line_params[2];
-    double y0 = line_params[3];
-
-    // Calculate line equation: y = mx + b
-    if (std::abs(vx) < 1e-6) {
-        return false; // Vertical line, skip
+    if (points.size() < 3) {
+        return false; // Need at least 3 points for polynomial fit
     }
 
-    double m = vy / vx;
-    double b = y0 - m * x0;
+    // Prepare matrices for polynomial fitting: x = a*y^2 + b*y + c
+    cv::Mat A(points.size(), 3, CV_64F);
+    cv::Mat B(points.size(), 1, CV_64F);
 
-    // Calculate x coordinates for y = bottom and y = top
+    for (size_t i = 0; i < points.size(); i++) {
+        double y = points[i].y;
+        double x = points[i].x;
+
+        A.at<double>(i, 0) = y * y;  // y^2
+        A.at<double>(i, 1) = y;       // y
+        A.at<double>(i, 2) = 1;       // constant
+        B.at<double>(i, 0) = x;
+    }
+
+    // Solve using least squares: (A^T * A)^-1 * A^T * B
+    cv::Mat coeffs;
+    cv::solve(A, B, coeffs, cv::DECOMP_SVD);
+
+    a = coeffs.at<double>(0, 0);
+    b = coeffs.at<double>(1, 0);
+    c = coeffs.at<double>(2, 0);
+
+    // Generate curve points for drawing
+    curve_points.clear();
     int y_bottom = frame_height - roi_top_offset_;
     int y_top = frame_height - roi_top_offset_ - roi_height_;
 
-    int x_bottom = static_cast<int>((y_bottom - b) / m);
-    int x_top = static_cast<int>((y_top - b) / m);
+    for (int y = y_top; y <= y_bottom; y += 3) {
+        int x = static_cast<int>(a * y * y + b * y + c);
 
-    // Check if points are within frame bounds
-    if (x_bottom < 0 || x_bottom >= frame_width || x_top < 0 || x_top >= frame_width) {
-        return false;
+        // Check if x is within reasonable bounds
+        if (x >= -100 && x < 1500) {
+            curve_points.push_back(cv::Point(x, y));
+        }
     }
 
-    bottom = cv::Point(x_bottom, y_bottom);
-    top = cv::Point(x_top, y_top);
+    // Validate that we have a reasonable curve
+    if (curve_points.size() < 10) {
+        return false;
+    }
 
     return true;
 }

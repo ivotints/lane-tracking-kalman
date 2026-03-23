@@ -2,12 +2,12 @@
 
 Real-time lane detection in video using C++ and OpenCV. Detects both white and yellow lane markings using color masking, Canny edge detection, and Hough Line Transform.
 
-![Lane Detection Example](assets/example.png)
+![Lane Detection in Action](assets/example_gif.gif)
 
 ## Quick Start
 
 ```bash
-# Build and run
+# Build and run with your video
 ./build_and_run.sh data/input.webm
 
 # Or manually
@@ -75,15 +75,6 @@ lane-tracking-kalman/
 ├── results/                # Output videos
 └── build/                  # Build directory
 ```
-
-## Roadmap
-
-- [x] Basic lane detection
-- [x] White and yellow lane support
-- [x] Line classification and averaging
-- [ ] Kalman filter for temporal smoothing
-- [ ] Polynomial lane models
-- [ ] Multi-lane detection
 
 ## License
 

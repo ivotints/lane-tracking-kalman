@@ -3,23 +3,20 @@
 namespace utils {
 
 void drawLanes(cv::Mat& frame, const LaneLines& lanes) {
-    // Draw left lane in green
-    if (lanes.has_left) {
-        cv::line(frame, lanes.left_bottom, lanes.left_top, cv::Scalar(0, 255, 0), 8);
+    // Draw left lane curve in green
+    if (lanes.has_left && lanes.left_points.size() > 1) {
+        for (size_t i = 0; i < lanes.left_points.size() - 1; i++) {
+            cv::line(frame, lanes.left_points[i], lanes.left_points[i + 1],
+                     cv::Scalar(0, 255, 0), 8);
+        }
     }
 
-    // Draw right lane in green
-    if (lanes.has_right) {
-        cv::line(frame, lanes.right_bottom, lanes.right_top, cv::Scalar(0, 255, 0), 8);
-    }
-
-    // Draw individual detected lines in blue (thinner, for debugging)
-    for (const auto& line : lanes.left_lines) {
-        cv::line(frame, line.start, line.end, cv::Scalar(255, 0, 0), 2);
-    }
-
-    for (const auto& line : lanes.right_lines) {
-        cv::line(frame, line.start, line.end, cv::Scalar(255, 0, 0), 2);
+    // Draw right lane curve in green
+    if (lanes.has_right && lanes.right_points.size() > 1) {
+        for (size_t i = 0; i < lanes.right_points.size() - 1; i++) {
+            cv::line(frame, lanes.right_points[i], lanes.right_points[i + 1],
+                     cv::Scalar(0, 255, 0), 8);
+        }
     }
 }
 
