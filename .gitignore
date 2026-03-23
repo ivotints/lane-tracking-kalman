@@ -1,0 +1,61 @@
+# Build directories
+build/
+cmake-build-*/
+
+# Compiled object files
+*.o
+*.obj
+*.elf
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Compiled dynamic libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Compiled static libraries
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+lane_tracking_kalman
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Video files (keep data folder but ignore large files)
+data/*.mp4
+data/*.avi
+data/*.mov
+data/*.mkv
+
+# Output results
+results/*.avi
+results/*.mp4
+results/*.mov
+
+# Keep directory structure
+!data/.gitkeep
+!results/.gitkeep
