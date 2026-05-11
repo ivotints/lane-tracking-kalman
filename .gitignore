@@ -14,7 +14,7 @@ cmake-build-*/
 # Compiled dynamic libraries
 *.so
 *.so.*
-*.dylib
+*.dylib 
 *.dll
 
 # Compiled static libraries
